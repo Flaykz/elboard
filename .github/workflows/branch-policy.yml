@@ -1,0 +1,42 @@
+name: Branch policy
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - edited
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+
+concurrency:
+  group: branch-policy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate-source-branch:
+    name: Validate source branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Enforce branch flow
+        shell: bash
+        run: |
+          base="${{ github.base_ref }}"
+          head="${{ github.head_ref }}"
+
+          if [[ "$base" == "main" && "$head" != "develop" ]]; then
+            echo "Pull requests to main must come from develop. Current source branch: $head"
+            exit 1
+          fi
+
+          if [[ "$base" == "develop" && ! "$head" =~ ^(feature|fix|chore|docs|refactor|test|perf|ci|build|revert|dependabot)/.+$ ]]; then
+            echo "Pull requests to develop must come from a work branch such as feature/*, fix/*, chore/*, docs/*, refactor/*, test/*, perf/*, ci/*, build/*, revert/*, or dependabot/*. Current source branch: $head"
+            exit 1
+          fi

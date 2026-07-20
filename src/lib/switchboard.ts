@@ -115,12 +115,12 @@ export function deleteModule(moduleId: number) {
 }
 
 export function moveModule(moduleId: number, direction: "left" | "right") {
-  const module = db.prepare(`SELECT * FROM modules WHERE id = ?`).get(moduleId) as Module;
-  if (!module) return;
+  const boardModule = db.prepare(`SELECT * FROM modules WHERE id = ?`).get(moduleId) as Module;
+  if (!boardModule) return;
 
   const siblings = db
     .prepare(`SELECT id, position FROM modules WHERE row_id = ? ORDER BY position ASC`)
-    .all(module.row_id) as { id: number; position: number }[];
+    .all(boardModule.row_id) as { id: number; position: number }[];
 
   const idx = siblings.findIndex((m) => m.id === moduleId);
   const swapIdx = direction === "left" ? idx - 1 : idx + 1;
