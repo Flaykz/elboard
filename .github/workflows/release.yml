@@ -19,6 +19,7 @@ concurrency:
 jobs:
   release:
     name: Semantic release and GHCR image
+    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -75,6 +76,52 @@ jobs:
 
           gh api -X POST \
             "repos/$GITHUB_REPOSITORY/branches/$GITHUB_REF_NAME/protection/enforce_admins"
+
+      - name: Sync stable release commit to develop
+        if: github.ref_name == 'main' && env.RELEASE_VERSION != ''
+        env:
+          GH_TOKEN: ${{ secrets.DEVELOP_SYNC_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
+        shell: bash
+        run: |
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "DEVELOP_SYNC_TOKEN is required to sync the stable release commit to develop."
+            exit 1
+          fi
+
+          restore_develop_protection() {
+            gh api -X POST \
+              "repos/$GITHUB_REPOSITORY/branches/develop/protection/enforce_admins" >/dev/null || true
+          }
+          trap restore_develop_protection EXIT
+
+          gh api -X DELETE \
+            "repos/$GITHUB_REPOSITORY/branches/develop/protection/enforce_admins"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin main develop
+          release_sha="$(git rev-parse origin/main)"
+
+          git switch --detach origin/develop
+          git checkout "$release_sha" -- package.json package-lock.json
+
+          if git diff --quiet -- package.json package-lock.json; then
+            git commit --allow-empty \
+              -m "chore(release): sync main release $RELEASE_VERSION [skip ci]" \
+              -m "Main release commit: $release_sha"
+          else
+            git add package.json package-lock.json
+            git commit \
+              -m "chore(release): sync main release $RELEASE_VERSION [skip ci]" \
+              -m "Main release commit: $release_sha"
+          fi
+
+          git push \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            HEAD:develop
 
       - name: Delete obsolete GitHub prereleases after stable release
         if: github.ref_name == 'main' && env.RELEASE_VERSION != ''
