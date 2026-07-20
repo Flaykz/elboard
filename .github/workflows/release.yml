@@ -52,18 +52,23 @@ jobs:
           GH_REPO: ${{ github.repository }}
         shell: bash
         run: |
-          ids="$(gh api "repos/$GH_REPO/releases?per_page=100" --paginate --jq '.[] | select(.prerelease == true) | .id')"
+          prereleases="$(gh api "repos/$GH_REPO/releases?per_page=100" --paginate --jq '.[] | select(.prerelease == true) | [.id, .tag_name] | @tsv')"
 
-          if [[ -z "$ids" ]]; then
+          if [[ -z "$prereleases" ]]; then
             echo "No prereleases to delete."
             exit 0
           fi
 
-          while IFS= read -r id; do
+          while IFS=$'\t' read -r id tag_name; do
             [[ -z "$id" ]] && continue
             echo "Deleting prerelease id $id"
             gh api -X DELETE "repos/$GH_REPO/releases/$id"
-          done <<< "$ids"
+
+            if [[ -n "$tag_name" ]]; then
+              echo "Deleting prerelease tag $tag_name"
+              gh api -X DELETE "repos/$GH_REPO/git/refs/tags/$tag_name" || true
+            fi
+          done <<< "$prereleases"
 
       - name: Setup Docker Buildx
         if: env.RELEASE_VERSION != ''
