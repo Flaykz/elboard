@@ -20,6 +20,7 @@ concurrency:
 jobs:
   checks:
     name: Lint, typecheck, build
+    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
 

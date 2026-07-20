@@ -19,6 +19,7 @@ concurrency:
 jobs:
   release:
     name: Semantic release and GHCR image
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -111,3 +112,24 @@ jobs:
             --label "org.opencontainers.image.version=$RELEASE_VERSION" \
             "${tags[@]}" \
             .
+
+      - name: Sync stable release marker to develop
+        if: github.ref_name == 'main' && env.RELEASE_VERSION != ''
+        env:
+          GH_TOKEN: ${{ secrets.DEVELOP_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin develop
+          git switch --detach origin/develop
+
+          git commit --allow-empty \
+            -m "chore(release): sync main release $RELEASE_VERSION [skip ci]" \
+            -m "Main release commit: $GITHUB_SHA"
+
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:develop
