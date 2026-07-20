@@ -1,36 +1,128 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ⚡ Elboard
 
-## Getting Started
+Elboard est une application web pour inventorier et organiser un tableau électrique domestique.
 
-First, run the development server:
+L’objectif est de représenter les rangées du tableau, les modules installés et les circuits associés afin de garder une vue lisible de l’installation.
+
+## Fonctionnalités
+
+- Gestion des rangées du tableau avec nom optionnel.
+- Ajout, modification, déplacement et suppression de modules.
+- Types de modules pris en charge :
+  - disjoncteur général / de branchement ;
+  - interrupteur différentiel ;
+  - disjoncteur divisionnaire ;
+  - autre module, par exemple parafoudre ou contacteur.
+- Calibres, pôles et largeurs configurables.
+- Suggestions de circuits et de pièces pour renseigner rapidement les départs.
+- Stockage local dans une base SQLite.
+
+## Stack technique
+
+- Next.js 16 avec App Router
+- React 19
+- TypeScript
+- Tailwind CSS
+- SQLite via `better-sqlite3`
+
+## Prérequis
+
+- Node.js `>= 22.14.0`
+- npm
+
+## Installation
+
+```bash
+npm install
+```
+
+## Développement
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+L’application est ensuite disponible sur [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+En mode développement, les changements sont pris en compte automatiquement par Next.js.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Production locale
 
-## Learn More
+```bash
+npm run build
+npm start
+```
 
-To learn more about Next.js, take a look at the following resources:
+`npm start` sert le build de production déjà généré. Pour voir les modifications en direct, utiliser `npm run dev`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Données
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Par défaut, la base SQLite est créée dans :
 
-## Deploy on Vercel
+```text
+data/elboard.db
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Le dossier peut être personnalisé avec la variable d’environnement `DATA_DIR` :
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+DATA_DIR=/chemin/vers/donnees npm start
+```
+
+Les données applicatives ne sont pas versionnées.
+
+## Scripts npm
+
+```bash
+npm run dev        # serveur de développement
+npm run build      # build de production
+npm start          # démarrage du build de production
+npm run lint       # lint ESLint
+npm run typecheck  # vérification TypeScript
+npm run ci         # lint + typecheck + build
+npm run release    # semantic-release
+```
+
+## Workflow Git
+
+Le dépôt utilise un workflow avec deux branches principales :
+
+- `develop` pour l’intégration et les préreleases ;
+- `main` pour les releases stables.
+
+Les changements fonctionnels passent par des branches de travail, par exemple :
+
+```text
+feature/nom-du-changement
+fix/nom-du-correctif
+chore/nom-de-maintenance
+```
+
+Les messages de commit et titres de pull request suivent la convention Conventional Commits.
+
+## CI/CD
+
+Les workflows GitHub Actions exécutent notamment :
+
+- lint ;
+- typecheck ;
+- build ;
+- validation de la politique de branches ;
+- release automatisée avec `semantic-release`.
+
+Les releases publient aussi une image container sur GHCR.
+
+## Docker
+
+Le projet contient un `Dockerfile` pour construire une image de production.
+
+Exemple :
+
+```bash
+docker build -t elboard .
+docker run --rm -p 3000:3000 -v "$PWD/data:/app/data" elboard
+```
+
+## Notes projet
+
+Ce projet utilise une version récente de Next.js. Avant de modifier du code Next.js, consulter la documentation embarquée dans `node_modules/next/dist/docs/`, comme indiqué dans les règles du dépôt.
