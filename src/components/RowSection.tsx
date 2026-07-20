@@ -4,13 +4,12 @@ import ModuleCard from "./ModuleCard";
 import RowControls from "./RowControls";
 
 export default function RowSection({ row, index }: { row: Row; index: number }) {
+  const rowTitle = row.label || `Rangée ${index + 1}`;
+
   return (
     <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-semibold text-gray-600">
-          Rangée {index + 1}
-          {row.label ? ` — ${row.label}` : ""}
-        </span>
+        <span className="text-sm font-semibold text-gray-600">{rowTitle}</span>
         <RowControls rowId={row.id} />
       </div>
       <div className="flex flex-wrap gap-2 items-stretch">

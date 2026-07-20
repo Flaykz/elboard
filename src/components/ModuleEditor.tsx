@@ -22,6 +22,10 @@ type Props = {
   module?: Module;
 };
 
+function defaultAmperageForType(type: ModuleType): number {
+  return type === "differentiel" ? 40 : 16;
+}
+
 export default function ModuleEditor({ rowId, module }: Props) {
   const router = useRouter();
   const initial = splitCircuitLabel(module?.circuit);
@@ -34,7 +38,9 @@ export default function ModuleEditor({ rowId, module }: Props) {
   const [type, setType] = useState<ModuleType>((module?.type as ModuleType) ?? "disjoncteur");
   const [circuitTags, setCircuitTags] = useState<string[]>(initialCircuitTags);
   const [roomTags, setRoomTags] = useState<string[]>(initial.rooms);
-  const [amperage, setAmperage] = useState<number | "">(module?.amperage ?? (module ? "" : 16));
+  const [amperage, setAmperage] = useState<number | "">(
+    module?.amperage ?? (module ? "" : defaultAmperageForType(type))
+  );
   const [poles, setPoles] = useState<number>(module?.poles ?? defaultPolesForType(type));
   const [width, setWidth] = useState<number>(module?.width ?? defaultPolesForType(type));
   const [saving, setSaving] = useState(false);
@@ -45,6 +51,7 @@ export default function ModuleEditor({ rowId, module }: Props) {
       const suggested = defaultPolesForType(value);
       setPoles(suggested);
       setWidth(suggested);
+      setAmperage(defaultAmperageForType(value));
     }
   }
 
@@ -53,7 +60,10 @@ export default function ModuleEditor({ rowId, module }: Props) {
     setWidth(value);
   }
 
-  const finalCircuit = [...circuitTags, ...roomTags].filter(Boolean).join(", ");
+  const usesCircuitDetails = type !== "differentiel";
+  const finalCircuit = usesCircuitDetails
+    ? [...circuitTags, ...roomTags].filter(Boolean).join(", ")
+    : "";
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -98,19 +108,23 @@ export default function ModuleEditor({ rowId, module }: Props) {
           </select>
         </label>
 
-        <TagPicker
-          legend="Type de circuit"
-          suggestions={CIRCUIT_SUGGESTIONS.map((c) => c.label)}
-          selected={circuitTags}
-          onChange={setCircuitTags}
-        />
+        {usesCircuitDetails && (
+          <>
+            <TagPicker
+              legend="Type de circuit"
+              suggestions={CIRCUIT_SUGGESTIONS.map((c) => c.label)}
+              selected={circuitTags}
+              onChange={setCircuitTags}
+            />
 
-        <TagPicker
-          legend="Pièce(s) / lieu(x)"
-          suggestions={ROOMS}
-          selected={roomTags}
-          onChange={setRoomTags}
-        />
+            <TagPicker
+              legend="Pièce(s) / lieu(x)"
+              suggestions={ROOMS}
+              selected={roomTags}
+              onChange={setRoomTags}
+            />
+          </>
+        )}
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <label className="block text-sm font-medium text-gray-900">
