@@ -10,7 +10,7 @@ export default async function EditModulePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const module = getModule(Number(id));
-  if (!module) notFound();
-  return <ModuleEditor rowId={module.row_id} module={module} />;
+  const boardModule = getModule(Number(id));
+  if (!boardModule) notFound();
+  return <ModuleEditor rowId={boardModule.row_id} module={boardModule} />;
 }
