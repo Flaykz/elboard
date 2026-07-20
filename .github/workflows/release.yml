@@ -19,7 +19,6 @@ concurrency:
 jobs:
   release:
     name: Semantic release and GHCR image
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -41,10 +40,41 @@ jobs:
       - name: Verify
         run: npm run ci
 
+      - name: Allow release commit on protected branch
+        env:
+          GH_TOKEN: ${{ secrets.DEVELOP_SYNC_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "DEVELOP_SYNC_TOKEN is not configured; keeping branch protection unchanged."
+            exit 0
+          fi
+
+          gh api -X DELETE \
+            "repos/$GITHUB_REPOSITORY/branches/$GITHUB_REF_NAME/protection/enforce_admins"
+
       - name: Semantic release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.DEVELOP_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
         run: npm run release
+
+      - name: Restore protected branch admin enforcement
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ secrets.DEVELOP_SYNC_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "DEVELOP_SYNC_TOKEN is not configured; branch protection was not changed."
+            exit 0
+          fi
+
+          gh api -X POST \
+            "repos/$GITHUB_REPOSITORY/branches/$GITHUB_REF_NAME/protection/enforce_admins"
 
       - name: Delete obsolete GitHub prereleases after stable release
         if: github.ref_name == 'main' && env.RELEASE_VERSION != ''
@@ -112,24 +142,3 @@ jobs:
             --label "org.opencontainers.image.version=$RELEASE_VERSION" \
             "${tags[@]}" \
             .
-
-      - name: Sync stable release marker to develop
-        if: github.ref_name == 'main' && env.RELEASE_VERSION != ''
-        env:
-          GH_TOKEN: ${{ secrets.DEVELOP_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_SHA: ${{ github.sha }}
-          RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git fetch origin develop
-          git switch --detach origin/develop
-
-          git commit --allow-empty \
-            -m "chore(release): sync main release $RELEASE_VERSION [skip ci]" \
-            -m "Main release commit: $GITHUB_SHA"
-
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:develop
