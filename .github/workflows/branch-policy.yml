@@ -36,7 +36,7 @@ jobs:
             exit 1
           fi
 
-          if [[ "$base" == "develop" && ! "$head" =~ ^(feature|fix|chore|docs|refactor|test|perf|ci|build|revert)/.+$ ]]; then
-            echo "Pull requests to develop must come from a work branch such as feature/*, fix/*, chore/*, docs/*, refactor/*, test/*, perf/*, ci/*, build/*, or revert/*. Current source branch: $head"
+          if [[ "$base" == "develop" && ! "$head" =~ ^(feature|fix|chore|docs|refactor|test|perf|ci|build|revert|dependabot)/.+$ ]]; then
+            echo "Pull requests to develop must come from a work branch such as feature/*, fix/*, chore/*, docs/*, refactor/*, test/*, perf/*, ci/*, build/*, revert/*, or dependabot/*. Current source branch: $head"
             exit 1
           fi
