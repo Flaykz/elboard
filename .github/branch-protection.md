@@ -28,6 +28,7 @@ Configure these protections in GitHub repository settings. Workflow files can va
   - `ci/*`
   - `build/*`
   - `revert/*`
+  - `dependabot/*`
 - Require these checks before merge:
   - `Lint, typecheck, build`
   - `Conventional commits`
