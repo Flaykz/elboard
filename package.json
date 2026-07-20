@@ -40,7 +40,7 @@
     "playwright": "^1.61.1",
     "semantic-release": "^25.0.8",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^7"
   },
   "allowScripts": {
     "better-sqlite3@12.11.1": true,
