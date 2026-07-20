@@ -11,7 +11,6 @@ if (!fs.existsSync(dataDir)) {
 const dbPath = path.join(dataDir, "elboard.db");
 
 declare global {
-  // eslint-disable-next-line no-var
   var __elboardDb: Database.Database | undefined;
 }
 

@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim AS base
+FROM node:22-bookworm-slim AS base
 
 # --- deps: install all dependencies (needs build tools for better-sqlite3 native addon) ---
 FROM base AS deps

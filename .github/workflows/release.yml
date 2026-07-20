@@ -1,0 +1,108 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Semantic release and GHCR image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify
+        run: npm run ci
+
+      - name: Semantic release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release
+
+      - name: Delete obsolete GitHub prereleases after stable release
+        if: github.ref_name == 'main' && env.RELEASE_VERSION != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          ids="$(gh api "repos/$GH_REPO/releases?per_page=100" --paginate --jq '.[] | select(.prerelease == true) | .id')"
+
+          if [[ -z "$ids" ]]; then
+            echo "No prereleases to delete."
+            exit 0
+          fi
+
+          while IFS= read -r id; do
+            [[ -z "$id" ]] && continue
+            echo "Deleting prerelease id $id"
+            gh api -X DELETE "repos/$GH_REPO/releases/$id"
+          done <<< "$ids"
+
+      - name: Setup Docker Buildx
+        if: env.RELEASE_VERSION != ''
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        if: env.RELEASE_VERSION != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        if: env.RELEASE_VERSION != ''
+        env:
+          RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          image="ghcr.io/$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          short_sha="${GITHUB_SHA::7}"
+          tags=(
+            "--tag" "$image:$RELEASE_VERSION"
+            "--tag" "$image:sha-$short_sha"
+          )
+
+          if [[ "$GITHUB_REF_NAME" == "main" ]]; then
+            tags+=("--tag" "$image:latest")
+          else
+            tags+=("--tag" "$image:develop")
+          fi
+
+          docker buildx build \
+            --push \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.opencontainers.image.version=$RELEASE_VERSION" \
+            "${tags[@]}" \
+            .
