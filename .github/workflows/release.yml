@@ -19,7 +19,7 @@ concurrency:
 jobs:
   release:
     name: Semantic release and GHCR image
-    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]') }}
+    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, '[release-sync]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -188,12 +188,12 @@ jobs:
 
           if git diff --quiet -- package.json package-lock.json; then
             git commit --allow-empty \
-              -m "chore(release): sync main release $RELEASE_VERSION [skip ci]" \
+              -m "chore(release): sync main release $RELEASE_VERSION [release-sync]" \
               -m "Main release commit: $release_sha"
           else
             git add package.json package-lock.json
             git commit \
-              -m "chore(release): sync main release $RELEASE_VERSION [skip ci]" \
+              -m "chore(release): sync main release $RELEASE_VERSION [release-sync]" \
               -m "Main release commit: $release_sha"
           fi
 

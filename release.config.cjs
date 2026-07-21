@@ -25,7 +25,7 @@ module.exports = {
       {
         assets: ["package.json", "package-lock.json"],
         message:
-          "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}",
+          "chore(release): ${nextRelease.version} [release-sync]\n\n${nextRelease.notes}",
       },
     ],
     "@semantic-release/github",
