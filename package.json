@@ -35,7 +35,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "conventional-changelog-conventionalcommits": "^10.2.1",
-    "eslint": "^9",
+    "eslint": "^10",
     "eslint-config-next": "16.2.10",
     "playwright": "^1.61.1",
     "semantic-release": "^25.0.8",
